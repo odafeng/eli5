@@ -87,10 +87,16 @@
 
     const selection = window.getSelection();
     const text = selection.toString().trim();
-    if (!text || text.length < 2) return;
+    if (!text || text.length < 2 || selection.rangeCount === 0) return;
 
-    const range = selection.getRangeAt(0);
-    const rect = range.getBoundingClientRect();
+    let rect;
+    try {
+      const range = selection.getRangeAt(0);
+      rect = range.getBoundingClientRect();
+    } catch (err) {
+      return;
+    }
+    if (!rect || (rect.width === 0 && rect.height === 0)) return;
 
     triggerBtn = document.createElement("button");
     triggerBtn.id = "eli5-trigger-btn";
