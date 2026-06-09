@@ -14,6 +14,8 @@ const DEFAULT_MODELS = {
   ollama: "llama3.2",
 };
 
+const REQUEST_TIMEOUT = 30000;
+
 async function getSettings() {
   return new Promise((resolve) => {
     chrome.storage.sync.get(
@@ -28,8 +30,18 @@ async function getSettings() {
   });
 }
 
+async function fetchWithTimeout(url, options) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function callAnthropic(text, apiKey, model) {
-  const res = await fetch(ANTHROPIC_API_URL, {
+  const res = await fetchWithTimeout(ANTHROPIC_API_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -55,7 +67,7 @@ async function callAnthropic(text, apiKey, model) {
 }
 
 async function callOpenAI(text, apiKey, model) {
-  const res = await fetch(OPENAI_API_URL, {
+  const res = await fetchWithTimeout(OPENAI_API_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -82,7 +94,7 @@ async function callOpenAI(text, apiKey, model) {
 }
 
 async function callOllama(text, model) {
-  const res = await fetch(OLLAMA_API_URL, {
+  const res = await fetchWithTimeout(OLLAMA_API_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -113,31 +125,36 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type !== "eli5") return;
 
   (async () => {
-    const settings = await getSettings();
-    const { provider, apiKey, model, ollamaModel } = settings;
-    const effectiveModel = model || DEFAULT_MODELS[provider] || "";
-
-    // Try cloud provider first if API key is available
-    if (apiKey && PROVIDERS[provider]) {
-      try {
-        const result = await PROVIDERS[provider].call(message.text, apiKey, effectiveModel);
-        sendResponse({ result, source: `${PROVIDERS[provider].label} (${effectiveModel})` });
-        return;
-      } catch (e) {
-        console.warn(`ELI5: ${provider} failed, falling back to Ollama:`, e.message);
-      }
-    }
-
-    // Fallback to Ollama
     try {
-      const result = await callOllama(message.text, ollamaModel);
-      sendResponse({ result, source: `Ollama (${ollamaModel})` });
+      const settings = await getSettings();
+      const { provider, apiKey, model, ollamaModel } = settings;
+      const effectiveModel = model || DEFAULT_MODELS[provider] || "";
+
+      // Try cloud provider first if API key is available
+      if (apiKey && PROVIDERS[provider]) {
+        try {
+          const result = await PROVIDERS[provider].call(message.text, apiKey, effectiveModel);
+          sendResponse({ result, source: `${PROVIDERS[provider].label} (${effectiveModel})` });
+          return;
+        } catch (e) {
+          console.warn(`ELI5: ${provider} failed, falling back to Ollama:`, e.message);
+        }
+      }
+
+      // Fallback to Ollama
+      try {
+        const result = await callOllama(message.text, ollamaModel);
+        sendResponse({ result, source: `Ollama (${ollamaModel})` });
+      } catch (e) {
+        sendResponse({
+          error: apiKey
+            ? `${PROVIDERS[provider]?.label || provider} and Ollama both failed. Check your settings.`
+            : "No API key set and Ollama is not running. Go to extension options to configure.",
+        });
+      }
     } catch (e) {
-      sendResponse({
-        error: apiKey
-          ? `${PROVIDERS[provider]?.label || provider} and Ollama both failed. Check your settings.`
-          : "No API key set and Ollama is not running. Go to extension options to configure.",
-      });
+      console.error("ELI5: unexpected error:", e);
+      sendResponse({ error: `Unexpected error: ${e.message}` });
     }
   })();
 
