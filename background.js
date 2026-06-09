@@ -4,29 +4,65 @@ Explain it in the simplest possible way, as if you're talking to a five-year-old
 Use short sentences, everyday analogies, and avoid jargon.
 Keep it under 100 words. Reply in the same language as the input text.`;
 
-const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
+const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
+const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
 const OLLAMA_API_URL = "http://localhost:11434/api/chat";
-const DEFAULT_GROQ_MODEL = "llama-3.3-70b-versatile";
-const DEFAULT_OLLAMA_MODEL = "llama3.2";
+
+const DEFAULT_MODELS = {
+  anthropic: "claude-sonnet-4-20250514",
+  openai: "gpt-4o-mini",
+  ollama: "llama3.2",
+};
 
 async function getSettings() {
   return new Promise((resolve) => {
     chrome.storage.sync.get(
-      { groqApiKey: "", groqModel: DEFAULT_GROQ_MODEL, ollamaModel: DEFAULT_OLLAMA_MODEL },
+      {
+        provider: "anthropic",
+        apiKey: "",
+        model: "",
+        ollamaModel: DEFAULT_MODELS.ollama,
+      },
       resolve
     );
   });
 }
 
-async function callGroq(text, apiKey, model) {
-  const res = await fetch(GROQ_API_URL, {
+async function callAnthropic(text, apiKey, model) {
+  const res = await fetch(ANTHROPIC_API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true",
+    },
+    body: JSON.stringify({
+      model: model || DEFAULT_MODELS.anthropic,
+      max_tokens: 256,
+      system: SYSTEM_PROMPT,
+      messages: [{ role: "user", content: text }],
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Anthropic API error (${res.status}): ${err}`);
+  }
+
+  const data = await res.json();
+  return data.content[0].text.trim();
+}
+
+async function callOpenAI(text, apiKey, model) {
+  const res = await fetch(OPENAI_API_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model,
+      model: model || DEFAULT_MODELS.openai,
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: text },
@@ -38,7 +74,7 @@ async function callGroq(text, apiKey, model) {
 
   if (!res.ok) {
     const err = await res.text();
-    throw new Error(`Groq API error (${res.status}): ${err}`);
+    throw new Error(`OpenAI API error (${res.status}): ${err}`);
   }
 
   const data = await res.json();
@@ -68,21 +104,27 @@ async function callOllama(text, model) {
   return data.message.content.trim();
 }
 
+const PROVIDERS = {
+  anthropic: { call: callAnthropic, label: "Claude" },
+  openai: { call: callOpenAI, label: "OpenAI" },
+};
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type !== "eli5") return;
 
   (async () => {
     const settings = await getSettings();
-    const { groqApiKey, groqModel, ollamaModel } = settings;
+    const { provider, apiKey, model, ollamaModel } = settings;
+    const effectiveModel = model || DEFAULT_MODELS[provider] || "";
 
-    // Try Groq first if API key is available
-    if (groqApiKey) {
+    // Try cloud provider first if API key is available
+    if (apiKey && PROVIDERS[provider]) {
       try {
-        const result = await callGroq(message.text, groqApiKey, groqModel);
-        sendResponse({ result, source: `Groq (${groqModel})` });
+        const result = await PROVIDERS[provider].call(message.text, apiKey, effectiveModel);
+        sendResponse({ result, source: `${PROVIDERS[provider].label} (${effectiveModel})` });
         return;
       } catch (e) {
-        console.warn("ELI5: Groq failed, falling back to Ollama:", e.message);
+        console.warn(`ELI5: ${provider} failed, falling back to Ollama:`, e.message);
       }
     }
 
@@ -92,12 +134,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse({ result, source: `Ollama (${ollamaModel})` });
     } catch (e) {
       sendResponse({
-        error: groqApiKey
-          ? "Both Groq and Ollama failed. Check your settings."
+        error: apiKey
+          ? `${PROVIDERS[provider]?.label || provider} and Ollama both failed. Check your settings.`
           : "No API key set and Ollama is not running. Go to extension options to configure.",
       });
     }
   })();
 
-  return true; // keep message channel open for async response
+  return true;
 });

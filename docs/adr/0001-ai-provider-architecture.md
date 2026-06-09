@@ -1,37 +1,38 @@
 # ADR 0001: AI Provider Architecture
 
 ## Status
-Accepted
+Superseded (v1.1.0 — replaced Groq-only with multi-provider)
 
 ## Context
 This Chrome extension needs a language model to generate ELI5 explanations. Requirements:
-- Should work with a free cloud API (no cost barrier)
+- Should support mainstream cloud AI providers
 - Should fallback to local model when no API key or cloud is unavailable
 - Must be simple to configure
 
 Options considered:
-1. **Anthropic Claude API** - High quality but paid, closed-source
-2. **OpenAI API** - Paid, closed-source
-3. **Groq API** - Free tier, runs open-source models (Llama 3.3 70B), extremely fast inference
+1. **Anthropic Claude API** - High quality, paid
+2. **OpenAI API** - Widely adopted, paid
+3. **Groq API** - Free tier but API key issues encountered in practice
 4. **Ollama** - Runs open-source models locally, no cost, requires local setup
 
-## Decision
-Use **Groq as the default cloud provider** and **Ollama as the local fallback**.
+Initially chose Groq for free access, but Groq API keys proved unreliable. Pivoted to letting users choose their preferred paid provider.
 
-- Groq provides free access to Llama 3.3 70B with fast inference via their LPU hardware
-- Ollama provides a zero-cost, privacy-first fallback that works offline
-- The extension auto-detects: if Groq API key exists, use Groq; otherwise, try Ollama
+## Decision
+Let users **choose between Anthropic (Claude) and OpenAI (GPT)** as cloud providers, with **Ollama as the local fallback**.
+
+- Users select their provider in the options page and supply their own API key
+- Default models: `claude-sonnet-4-20250514` (Anthropic) / `gpt-4o-mini` (OpenAI)
+- If cloud call fails or no API key is set, automatically fallback to Ollama (localhost:11434)
 
 ## Consequences
 
 ### Positive
-- Zero cost for users (Groq free tier + Ollama)
-- Open-source models only (Llama 3.3 / Llama 3.2)
-- Works offline via Ollama fallback
-- Groq's speed makes the UX feel responsive
+- Users get to pick the provider they already have an account with
+- Both Claude and GPT are high-quality for ELI5 explanations
+- Ollama fallback still provides a zero-cost offline option
+- Easy to add more providers in the future (provider dispatch pattern)
 
 ### Negative
-- Groq free tier has rate limits (~30 req/min) - may hit limits with heavy use
+- Cloud providers require paid API keys (no free tier for casual users)
 - Ollama requires separate installation and model download (~2-4 GB)
-- Open-source model quality may be lower than Claude/GPT-4 for nuanced explanations
-- Groq API availability depends on a third-party service
+- Users must manage their own API keys

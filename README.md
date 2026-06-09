@@ -5,10 +5,9 @@ A Chrome extension that lets you select any text on a webpage and instantly get 
 ## Features
 
 - **Select & Explain** — Highlight any text, click the "ELI5?" button, and get a plain-language explanation in a tooltip
-- **Groq Cloud (Default)** — Uses Groq's free API with Llama 3.3 70B for fast, high-quality explanations
+- **Multi-Provider** — Choose between Anthropic (Claude) or OpenAI (GPT) as your cloud AI provider
 - **Ollama Fallback** — No API key? No problem. Falls back to a local Ollama model automatically
 - **Multilingual** — Replies in the same language as the selected text
-- **Zero Cost** — Both Groq (free tier) and Ollama (local) are free
 
 ## How It Works
 
@@ -25,9 +24,9 @@ Select text → "ELI5?" button appears → Click → AI explains it simply
        │  "ELI5?" btn │
        └──────┬───────┘
               ▼
-    ┌───────────────────┐    Yes    ┌────────────────┐
-    │  Groq API Key set? ├─────────►│  Call Groq API  │
-    └────────┬──────────┘           └───────┬────────┘
+    ┌──────────────────┐   Yes   ┌─────────────────────┐
+    │  API Key set?     ├───────►│  Call Claude / GPT   │
+    └────────┬─────────┘         └──────────┬──────────┘
              │ No                            │
              ▼                               ▼
     ┌─────────────────┐            ┌─────────────────┐
@@ -51,7 +50,7 @@ Select text → "ELI5?" button appears → Click → AI explains it simply
 2. Open Chrome and go to `chrome://extensions/`
 3. Enable **Developer mode** (top right)
 4. Click **Load unpacked** → select the `eli5/` folder
-5. (Optional) Click the extension's options to set your Groq API key
+5. Click the extension's options to choose your provider and enter your API key
 
 ## Configuration
 
@@ -59,9 +58,15 @@ Open the extension's **Options** page to configure:
 
 | Setting | Description | Default |
 |---------|-------------|---------|
-| Groq API Key | Free at [console.groq.com/keys](https://console.groq.com/keys) | (none) |
-| Groq Model | Cloud model to use | `llama-3.3-70b-versatile` |
+| Provider | Anthropic (Claude) or OpenAI (GPT) | Anthropic |
+| API Key | Your provider's API key | (none) |
+| Model | Override the default model (optional) | `claude-sonnet-4-20250514` / `gpt-4o-mini` |
 | Ollama Model | Local fallback model | `llama3.2` |
+
+### Getting an API Key
+
+- **Anthropic**: [console.anthropic.com/settings/keys](https://console.anthropic.com/settings/keys)
+- **OpenAI**: [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
 
 ### Using Ollama (no API key needed)
 
@@ -71,12 +76,12 @@ Open the extension's **Options** page to configure:
    ollama pull llama3.2
    ```
 3. Make sure Ollama is running (`ollama serve`)
-4. The extension will automatically use it when no Groq API key is set
+4. The extension will automatically use it when no API key is set
 
 ## Tech Stack
 
 - Chrome Extension Manifest V3
-- Groq API (Llama 3.3 70B) — cloud
+- Anthropic Claude API / OpenAI API — cloud
 - Ollama — local fallback
 - Vanilla JavaScript (no frameworks)
 
@@ -93,10 +98,9 @@ MIT
 ## 功能特色
 
 - **選取即解釋** — 反白任何文字，點擊「ELI5?」按鈕，tooltip 中即時顯示白話解釋
-- **Groq 雲端（預設）** — 使用 Groq 的免費 API 搭配 Llama 3.3 70B，快速且高品質
+- **多模型商支援** — 自由選擇 Anthropic（Claude）或 OpenAI（GPT）作為雲端 AI
 - **Ollama 地端備援** — 沒有 API key？沒關係，自動切換到本地 Ollama 模型
 - **多語言支援** — 回覆語言與選取文字相同
-- **完全免費** — Groq（免費方案）和 Ollama（本地）都不用錢
 
 ## 運作原理
 
@@ -113,7 +117,7 @@ MIT
 2. 打開 Chrome，前往 `chrome://extensions/`
 3. 開啟右上角的**開發人員模式**
 4. 點擊**載入未封裝項目** → 選擇 `eli5/` 資料夾
-5. （選用）點擊擴充套件的選項頁面設定 Groq API key
+5. 點擊擴充套件的選項頁面，選擇 provider 並輸入 API key
 
 ## 設定說明
 
@@ -121,9 +125,15 @@ MIT
 
 | 設定項目 | 說明 | 預設值 |
 |---------|------|--------|
-| Groq API Key | 在 [console.groq.com/keys](https://console.groq.com/keys) 免費申請 | （無） |
-| Groq Model | 雲端使用的模型 | `llama-3.3-70b-versatile` |
+| Provider | Anthropic（Claude）或 OpenAI（GPT） | Anthropic |
+| API Key | 你的 provider API key | （無） |
+| Model | 自訂模型（選填） | `claude-sonnet-4-20250514` / `gpt-4o-mini` |
 | Ollama Model | 本地備援模型 | `llama3.2` |
+
+### 取得 API Key
+
+- **Anthropic**: [console.anthropic.com/settings/keys](https://console.anthropic.com/settings/keys)
+- **OpenAI**: [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
 
 ### 使用 Ollama（不需要 API key）
 
@@ -133,11 +143,11 @@ MIT
    ollama pull llama3.2
    ```
 3. 確保 Ollama 正在執行（`ollama serve`）
-4. 擴充套件會在沒有設定 Groq API key 時自動使用它
+4. 擴充套件會在沒有設定 API key 時自動使用它
 
 ## 技術架構
 
 - Chrome Extension Manifest V3
-- Groq API（Llama 3.3 70B）— 雲端
+- Anthropic Claude API / OpenAI API — 雲端
 - Ollama — 地端備援
 - 純 JavaScript（無框架）

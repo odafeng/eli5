@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ELI5 - Explain Like I'm Five",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Select any text and get a simple ELI5 explanation powered by AI",
   "permissions": ["storage", "activeTab"],
   "options_page": "options.html",
@@ -21,7 +21,8 @@
     "128": "icons/icon128.png"
   },
   "host_permissions": [
-    "https://api.groq.com/*",
+    "https://api.anthropic.com/*",
+    "https://api.openai.com/*",
     "http://localhost:11434/*"
   ]
 }
