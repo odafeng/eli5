@@ -103,9 +103,14 @@
     <input type="password" id="apiKey" placeholder="sk-...">
     <p class="hint" id="apiKeyHint"></p>
 
-    <label for="model">Model (optional)</label>
-    <input type="text" id="model" placeholder="">
-    <p id="modelHint"></p>
+    <label for="model">Model</label>
+    <div style="display:flex;gap:8px;align-items:start">
+      <select id="model" style="flex:1" disabled>
+        <option value="">Enter API key to load models...</option>
+      </select>
+      <button type="button" id="refreshModels" style="padding:8px 12px;font-size:12px;white-space:nowrap" disabled>Refresh</button>
+    </div>
+    <p id="modelHint" style="font-size:12px;color:#999;margin-bottom:12px"></p>
   </div>
 
   <div class="section">
