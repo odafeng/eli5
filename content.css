@@ -42,6 +42,12 @@
   margin-bottom: 8px;
   padding-bottom: 8px;
   border-bottom: 1px solid #eee;
+  cursor: grab;
+  user-select: none;
+}
+
+#eli5-tooltip .eli5-header:active {
+  cursor: grabbing;
 }
 
 #eli5-tooltip .eli5-title {

@@ -35,6 +35,29 @@
 
     tooltip.querySelector(".eli5-close").addEventListener("click", removeTooltip);
 
+    // Drag via header
+    const header = tooltip.querySelector(".eli5-header");
+    let dragOffsetX = 0;
+    let dragOffsetY = 0;
+
+    header.addEventListener("mousedown", (e) => {
+      if (e.target.closest(".eli5-close")) return;
+      e.preventDefault();
+      dragOffsetX = e.clientX - tooltip.getBoundingClientRect().left;
+      dragOffsetY = e.clientY - tooltip.getBoundingClientRect().top;
+
+      function onMove(ev) {
+        tooltip.style.left = `${window.scrollX + ev.clientX - dragOffsetX}px`;
+        tooltip.style.top = `${window.scrollY + ev.clientY - dragOffsetY}px`;
+      }
+      function onUp() {
+        document.removeEventListener("mousemove", onMove);
+        document.removeEventListener("mouseup", onUp);
+      }
+      document.addEventListener("mousemove", onMove);
+      document.addEventListener("mouseup", onUp);
+    });
+
     // Keep tooltip within viewport
     requestAnimationFrame(() => {
       if (!tooltip) return;
